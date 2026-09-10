@@ -1,0 +1,42 @@
+{
+  "name": "fahadmayow/exert",
+  "description": "A lightweight Laravel package for implementing group-based action architecture.",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Exert\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Exert\\ExertServiceProvider"
+      ]
+    }
+  },
+  "authors": [
+    {
+      "name": "Fahad Mayow",
+      "email": "34403816+fahadmayow@users.noreply.github.com"
+    }
+  ],
+  "require": {
+    "laravel/framework": "^13.31"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^11.0",
+    "phpunit/phpunit": "^12.5.8"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Exert\\Tests\\": "tests/"
+    },
+    "classmap": [
+      "tests/Fixtures/"
+    ]
+  },
+  "scripts": {
+    "test": "@php vendor/bin/phpunit"
+  }
+}

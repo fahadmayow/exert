@@ -1,0 +1,17 @@
+<?php
+
+namespace {{ namespace }};
+
+use Exert\ActionController;
+
+class {{ class }} extends ActionController
+{
+    /**
+     * Define all related actions handled by this controller endpoint.
+     * 
+     * @var array
+     */
+    protected array $actions = [
+        // 'action.name' => TheAction::class
+    ];
+}

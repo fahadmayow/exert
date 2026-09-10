@@ -1,0 +1,35 @@
+<?php
+
+namespace {{ namespace }};
+
+use Exert\Action;
+
+class {{ class }} extends Action
+{
+    /**
+     * Allowed request methods.
+     *
+     * @var array<string>
+     */
+    protected array $methods = ['GET'];
+
+    /**
+     * Request middlewares.
+     *
+     * @return array
+     */
+    protected function middlewares(): array
+    {
+        return [];
+    }
+
+    /**
+     * Request handler.
+     *
+     * @return mixed
+     */
+    public function handle()
+    {
+        return 'Exert your will through action.';
+    }
+}
