@@ -1,6 +1,6 @@
 # Exert
 
-A Laravel package for grouping small action classes behind a controller endpoint. Each action owns its HTTP method, middleware, and handler. The controller maps request action names to the classes it permits.
+An opinionated Laravel package for grouping small, focused action classes behind a single controller endpoint. Each action defines its own HTTP method, middleware, and handler, while the controller explicitly maps action names to the classes it allows.
 
 ```text
 GET /api/system?action=status
@@ -248,7 +248,7 @@ curl -H 'Accept: application/json' \
 ```
 
 ```json
-{"status":"ok"}
+{ "status": "ok" }
 ```
 
 The action key can also be supplied in a JSON request body:
@@ -261,7 +261,7 @@ curl -X POST 'http://127.0.0.1:8000/api/system' \
 ```
 
 ```json
-{"message":"Hello"}
+{ "message": "Hello" }
 ```
 
 ## Route macro
@@ -308,9 +308,9 @@ return [
 ];
 ```
 
-| Option | Purpose |
-| --- | --- |
-| `action_key` | Request input key used by `resolve()` to select an action. |
+| Option         | Purpose                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `action_key`   | Request input key used by `resolve()` to select an action.                                                 |
 | `actions_path` | Default generator directory relative to the application's `app/` directory; also determines the namespace. |
 
 ### Change the request key
@@ -427,13 +427,13 @@ The container does not automatically populate scalar parameters from request inp
 
 `handle()` can return values supported by Laravel's router, including:
 
-| Result | HTTP behavior |
-| --- | --- |
-| Array | JSON response. |
-| String | Regular response body. |
-| Laravel view | Rendered response content. |
-| JSON, redirect, streamed, or other Symfony response | Prepared as an existing response. |
-| Laravel `Responsable` implementation | Converted through its `toResponse()` method. |
+| Result                                              | HTTP behavior                                |
+| --------------------------------------------------- | -------------------------------------------- |
+| Array                                               | JSON response.                               |
+| String                                              | Regular response body.                       |
+| Laravel view                                        | Rendered response content.                   |
+| JSON, redirect, streamed, or other Symfony response | Prepared as an existing response.            |
+| Laravel `Responsable` implementation                | Converted through its `toResponse()` method. |
 
 The package calls `Router::prepareResponse()` inside the pipeline destination, before the result returns through middleware. Actions therefore do not need a `Response` return type, while middleware can expect an HTTP response from `$next($request)`.
 
@@ -449,7 +449,7 @@ The default is `['GET']`. Comparison is case-insensitive, and duplicate method n
 
 Method checking occurs before action middleware and before `handle()` executes. A `GET` action does not automatically accept `HEAD`; include it explicitly if needed. The outer Laravel route must also allow the requested method.
 
-When upgrading existing actions, replace declarations such as `protected string $method = 'POST';` with `protected array $methods = ['POST'];`. The old `$method` property is no longer read. Use separate actions when different HTTP methods represent different business operations.
+Use separate actions when different HTTP methods represent different business operations.
 
 ## Middleware
 
@@ -514,10 +514,6 @@ Laravel route middleware
 - Action middleware is not registered with Laravel's terminating-middleware mechanism. Attach middleware requiring `terminate()` to a Laravel route or the HTTP kernel.
 - Missing actions and method mismatches are rejected before action middleware executes. Put checks that must cover the entire endpoint on its route.
 
-### Migrating shared middleware
-
-Move middleware from a previously published `exert.middlewares` setting or a controller's `middlewares()` override onto Laravel routes or route groups. Remove the old config entry and controller method: Exert no longer reads them. If you implement or override `initiate()`, update it to accept only `Request $request`.
-
 ## Execution and errors
 
 For the supplied base classes, dispatch follows these steps:
@@ -529,15 +525,15 @@ For the supplied base classes, dispatch follows these steps:
 5. Resolve the selected action's middleware through Laravel and execute it in the HTTP routing pipeline.
 6. Invoke `handle()` through the container and prepare its result as an HTTP response.
 
-| Condition | Result |
-| --- | --- |
-| Missing, non-string, or unknown action identifier | `NotFoundHttpException` with HTTP 404. |
-| Registered action class does not exist | `NotFoundHttpException` with HTTP 404. |
-| Unsupported HTTP method | `MethodNotAllowedHttpException` with HTTP 405 and an `Allow` header. |
-| Registered class does not implement `ActionInterface` | `LogicException`. |
-| Action has no public `handle()` method | `LogicException`. |
+| Condition                                             | Result                                                               |
+| ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Missing, non-string, or unknown action identifier     | `NotFoundHttpException` with HTTP 404.                               |
+| Registered action class does not exist                | `NotFoundHttpException` with HTTP 404.                               |
+| Unsupported HTTP method                               | `MethodNotAllowedHttpException` with HTTP 405 and an `Allow` header. |
+| Registered class does not implement `ActionInterface` | `LogicException`.                                                    |
+| Action has no public `handle()` method                | `LogicException`.                                                    |
 
-Laravel's exception handler renders errors. The package does not impose a custom JSON error shape or use `message.404` / `message.405` config entries. Send `Accept: application/json` when a client expects Laravel's JSON error rendering. Application exceptions, including validation failures, propagate to Laravel's handler too.
+Laravel's exception handler renders errors. The package does not impose a custom JSON error shape. Send `Accept: application/json` when a client expects Laravel's JSON error rendering. Application exceptions, including validation failures, propagate to Laravel's handler too.
 
 ## Calling actions directly
 
@@ -583,12 +579,12 @@ Public inspection methods are `ActionController::getActions()`, `Action::getAllo
 
 After validating a registered action, the resolver sets these request attributes before invoking `initiate()`:
 
-| Attribute | Value |
-| --- | --- |
-| `exert.action` | Registered action name, such as `refund`. |
-| `exert.action_class` | Registered action class. |
-| `exert.controller` | Controller class selecting the action. |
-| `exert.action_id` | Controller class plus `::` plus the registered name. |
+| Attribute            | Value                                                |
+| -------------------- | ---------------------------------------------------- |
+| `exert.action`       | Registered action name, such as `refund`.            |
+| `exert.action_class` | Registered action class.                             |
+| `exert.controller`   | Controller class selecting the action.               |
+| `exert.action_id`    | Controller class plus `::` plus the registered name. |
 
 The controller-qualified identifier distinguishes `create` in different groups. If a controller is mounted on multiple routes, combine it with the route name or URI template to distinguish endpoints. Avoid raw URLs containing IDs as metric labels.
 
@@ -699,16 +695,16 @@ Add tests for your middleware's authorization rules and early responses. When ma
 
 ## Troubleshooting
 
-| Symptom | Check |
-| --- | --- |
+| Symptom                                              | Check                                                                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `make:action` or `make:action-controller` is missing | Confirm Composer installed the package and its provider is discovered or registered. Run `php artisan package:discover` if discovery needs refreshing. |
-| Action returns 404 | Verify the configured input key, the controller's mapping, and the mapped class's namespace/autoloading. |
-| Action returns 405 | Check both the outer route's accepted methods and the action's `$methods`. |
-| Middleware alias cannot be resolved | Confirm the alias/group is registered in Laravel and any referenced middleware package or guard is installed and configured. |
-| New actions appear in an unexpected folder | Check `exert.actions_path`, cached configuration, and whether an existing published config overrides the default. |
-| Handler dependencies cannot be resolved | Bind service interfaces and avoid expecting scalar parameters to be filled from request input. |
-| Typed middleware receives an invalid return value | Check whether an inner middleware returns a raw value early; it should return an HTTP response. |
-| POST requests receive a CSRF error | Check the route's middleware group and send the CSRF credentials required by your application's web routes. |
+| Action returns 404                                   | Verify the configured input key, the controller's mapping, and the mapped class's namespace/autoloading.                                               |
+| Action returns 405                                   | Check both the outer route's accepted methods and the action's `$methods`.                                                                             |
+| Middleware alias cannot be resolved                  | Confirm the alias/group is registered in Laravel and any referenced middleware package or guard is installed and configured.                           |
+| New actions appear in an unexpected folder           | Check `exert.actions_path`, cached configuration, and whether an existing published config overrides the default.                                      |
+| Handler dependencies cannot be resolved              | Bind service interfaces and avoid expecting scalar parameters to be filled from request input.                                                         |
+| Typed middleware receives an invalid return value    | Check whether an inner middleware returns a raw value early; it should return an HTTP response.                                                        |
+| POST requests receive a CSRF error                   | Check the route's middleware group and send the CSRF credentials required by your application's web routes.                                            |
 
 ## License
 
