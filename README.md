@@ -105,10 +105,12 @@ Earlier Laravel versions are not included in the package's current dependency co
 
 ## Installation
 
+The first stable release is `v0.1.0`. See [the changelog](CHANGELOG.md) for release notes.
+
 Install the package in your Laravel application using Composer:
 
 ```bash
-composer require fahadmayow/exert
+composer require fahadmayow/exert:^0.1
 ```
 
 Laravel's package discovery registers `Exert\ExertServiceProvider`. No manual registration is needed when discovery is enabled.
