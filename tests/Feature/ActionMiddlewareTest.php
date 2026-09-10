@@ -10,6 +10,42 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ActionMiddlewareTest extends TestCase
 {
+    public function test_route_exclusions_apply_to_action_middleware(): void
+    {
+        $router = $this->app['router'];
+        $router->aliasMiddleware('first', FirstMiddleware::class);
+        $router->middlewareGroup('checks', ['first']);
+        $router->getRoutes()->getByName('actions')->withoutMiddleware('checks');
+        ExampleAction::$middleware = [FirstMiddleware::class, LastMiddleware::class];
+
+        $this->getJson('/actions?action=example')->assertOk()->assertHeaderMissing('X-First');
+        $this->assertSame(['last', 'injected:injected'], ExampleAction::$trace);
+
+        // Exclusions belong to the route, not the action class.
+        ExampleAction::$trace = [];
+        $this->getJson('/other?action=example')->assertOk()->assertHeader('X-First', 'yes');
+        $this->assertSame(['first', 'last', 'injected:injected'], ExampleAction::$trace);
+    }
+
+    public function test_without_middleware_skips_action_middleware(): void
+    {
+        ExampleAction::$middleware = [FirstMiddleware::class, fn ($request, $next) => response('blocked', 403)];
+        $this->withoutMiddleware();
+
+        $this->getJson('/actions?action=example')->assertOk()->assertHeaderMissing('X-First');
+        $this->assertSame(['injected:injected'], ExampleAction::$trace);
+        $this->assertSame(1, ExampleAction::$runs);
+    }
+
+    public function test_false_disable_flag_keeps_action_middleware_enabled(): void
+    {
+        $this->app->instance('middleware.disable', false);
+        ExampleAction::$middleware = [FirstMiddleware::class];
+
+        $this->getJson('/actions?action=example')->assertOk()->assertHeader('X-First', 'yes');
+        $this->assertSame(['first', 'injected:injected'], ExampleAction::$trace);
+    }
+
     public function test_aliases_nested_groups_parameters_priority_and_deduplication(): void
     {
         $router = $this->app['router'];

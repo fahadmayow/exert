@@ -79,8 +79,14 @@ abstract class Action implements ActionInterface
 
         $router = app(Router::class);
 
-        // Resolve aliases, parameters, and groups using Laravel's middleware priority.
-        $middlewares = $router->resolveMiddleware($this->getActionMiddleware());
+        $shouldSkipMiddleware = app()->bound('middleware.disable') &&
+            app()->make('middleware.disable') === true;
+
+        // Apply route exclusions and Laravel's middleware resolution and priority.
+        $middlewares = $shouldSkipMiddleware ? [] : $router->resolveMiddleware(
+            $this->getActionMiddleware(),
+            $request->route()?->excludedMiddleware() ?? []
+        );
 
         // The HTTP pipeline lets Laravel render exceptions before middleware unwinds.
         // Middleware can return a response early or pass the request to the next step.

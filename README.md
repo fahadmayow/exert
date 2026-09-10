@@ -506,6 +506,8 @@ Laravel route middleware
 ### Middleware behavior and limitations
 
 - Exert uses Laravel's `Router::resolveMiddleware()` to expand aliases and groups, preserve middleware parameters, apply configured middleware priority, and remove duplicate resolved entries within the action list.
+- Route exclusions declared with `withoutMiddleware()` also apply to action middleware, using Laravel's normal exclusion matching for aliases, groups, and classes. Exclusions affect only the current route; calling an action without a route supplies no route exclusions.
+- Laravel's test middleware-disable flag also skips action middleware, including closures. Action selection, method checks, handler execution, and response conversion still run.
 - Parameterized aliases such as `'auth:sanctum'` and class names such as `SomeMiddleware::class.':parameter'` work through Laravel's resolver.
 - Priority sorting and duplicate removal apply within the action list; Exert does not merge it with middleware already running on the route. Avoid registering the same check in both places.
 - Exert uses `Illuminate\Routing\Pipeline`, so exceptions inside the action pipeline are reported/rendered by Laravel's bound exception handler. Surrounding middleware can then process the rendered error response after `$next($request)`. Without a bound exception handler, exceptions are rethrown.
@@ -522,7 +524,7 @@ For the supplied base classes, dispatch follows these steps:
 2. Confirm the mapped class exists and resolve it through the container.
 3. Confirm it implements `ActionInterface`.
 4. Check the action's allowed HTTP methods and public `handle()` method.
-5. Resolve the selected action's middleware through Laravel and execute it in the HTTP routing pipeline.
+5. Resolve the selected action's middleware through Laravel, applying the current route's exclusions, and execute it in the HTTP routing pipeline. Skip middleware when Laravel's middleware-disable flag is `true`.
 6. Invoke `handle()` through the container and prepare its result as an HTTP response.
 
 | Condition                                             | Result                                                               |
@@ -682,6 +684,25 @@ php artisan test --filter=SystemActionsTest
 ```
 
 Add tests for your middleware's authorization rules and early responses. When manually constructing a request for an isolated action test, bind that same request in the application container if `handle()` injects `Request`.
+
+Use Laravel's test helper to disable all middleware, including action middleware:
+
+```php
+$this->withoutMiddleware();
+
+$this->getJson('/api/system?action=status')->assertOk();
+```
+
+Exert skips action middleware when the container's `middleware.disable` binding is exactly `true`. An absent or `false` binding keeps middleware enabled.
+
+To exclude particular middleware on an endpoint, use the route's `withoutMiddleware()` method. This also excludes matching entries declared by its actions:
+
+```php
+Route::exert('/reports', ReportController::class)
+    ->withoutMiddleware(\App\Http\Middleware\EnsureCanExport::class);
+```
+
+`ReportController` represents your application's action controller. Route exclusions do not remove global middleware.
 
 ## Things to note
 
