@@ -15,7 +15,7 @@ class RouteMacroTest extends TestCase
             Route::exert('/multiple', ExampleController::class, ['GET', 'POST']);
         });
         $this->getJson('/api/limited?action=example')->assertStatus(405)->assertHeader('Allow', 'POST');
-        $this->postJson('/api/limited', ['action' => 'example'])->assertOk()->assertHeader('X-First', 'yes');
+        $this->postJson('/api/limited?action=example', [])->assertOk()->assertHeader('X-First', 'yes');
         $this->assertSame('limited', $this->app['request']->route()->getName());
         $this->getJson('/api/multiple?action=example')->assertOk();
     }

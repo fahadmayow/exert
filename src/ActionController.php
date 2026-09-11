@@ -39,7 +39,15 @@ abstract class ActionController
             $request->attributes->remove($key);
         }
 
-        $currentAction = $request->input(config('exert.action_key', 'action'));
+        $actionKey = config('exert.action_key', 'action');
+        $currentAction = match (config('exert.action_source', 'query')) {
+            'query' => $request->query($actionKey),
+            'body' => $request->isJson()
+                ? $request->json($actionKey)
+                : $request->post($actionKey),
+            'both' => $request->input($actionKey),
+            default => throw new LogicException('exert.action_source must be query, body, or both.'),
+        };
         $actions = $this->getActions();
 
         // Only dispatch registered names; never treat user input as a class name.

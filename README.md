@@ -71,10 +71,10 @@ app/Http/
 With the corresponding route and mappings, a client could request:
 
 ```http
-POST /api/orders
+POST /api/orders?action=resend-invoice
 Content-Type: application/json
 
-{"action":"resend-invoice","order_id":42}
+{"order_id":42}
 ```
 
 The controller selects `ResendInvoice`; that action reads and validates its input, checks any action-specific permissions, and calls the service responsible for sending the invoice. Someone changing invoice delivery can work in that action without navigating cancellation or shipping code.
@@ -253,7 +253,7 @@ curl -H 'Accept: application/json' \
 { "status": "ok" }
 ```
 
-The action key can also be supplied in a JSON request body:
+With `exert.action_source` set to `'body'` or `'both'`, the action key can also be supplied in a JSON request body:
 
 ```bash
 curl -X POST 'http://127.0.0.1:8000/api/system' \
@@ -306,6 +306,7 @@ The published `config/exert.php` contains these defaults:
 ```php
 return [
     'action_key' => 'action',
+    'action_source' => 'query',
     'actions_path' => 'Http/Actions',
 ];
 ```
@@ -313,6 +314,7 @@ return [
 | Option         | Purpose                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------- |
 | `action_key`   | Request input key used by `resolve()` to select an action.                                                 |
+| `action_source` | Where to read the action key: `query` (default), `body`, or `both`. |
 | `actions_path` | Default generator directory relative to the application's `app/` directory; also determines the namespace. |
 
 ### Change the request key
@@ -321,7 +323,21 @@ return [
 'action_key' => 'operation',
 ```
 
-Clients would then send `?operation=status` or include `"operation": "echo"` in their JSON body. The resolver uses Laravel's `$request->input()`.
+Clients would then send `?operation=status`. With `action_source` set to `'body'` or `'both'`, they can instead include `"operation": "echo"` in their JSON body.
+
+### Change the action source
+
+```php
+'action_source' => 'query',
+```
+
+- `query` (default): selects the action only from URL query parameters, such as `?action=status`. An action key in the body is ignored.
+- `body`: selects the action only from the request body, supporting JSON and regular form data. An action key in the query string is ignored.
+- `both`: uses Laravel's `$request->input()`, preserving the previous behavior, including body precedence when Laravel reads body input and both sources contain the key.
+
+If the selected source has no valid registered action, the resolver returns a 404. This setting only affects action selection; actions can still read other request data normally.
+
+Existing clients that send the action in the body must set `action_source` to `'body'` or `'both'`, or move the action key to the query string.
 
 ### Change the generated action directory
 
@@ -655,12 +671,11 @@ class SystemActionsTest extends TestCase
 
     public function test_echo_action_validates_and_returns_input(): void
     {
-        $this->postJson('/api/system', [
-            'action' => 'echo',
+        $this->postJson('/api/system?action=echo', [
             'message' => 'Hello',
         ])->assertOk()->assertExactJson(['message' => 'Hello']);
 
-        $this->postJson('/api/system', ['action' => 'echo'])
+        $this->postJson('/api/system?action=echo', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('message');
     }

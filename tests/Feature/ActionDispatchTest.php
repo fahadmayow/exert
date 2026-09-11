@@ -13,9 +13,39 @@ class ActionDispatchTest extends TestCase
     public function test_default_key_and_dependency_injection(): void
     {
         $this->assertSame('action', config('exert.action_key'));
+        $this->assertSame('query', config('exert.action_source'));
         $this->getJson('/actions?action=example')->assertOk()->assertExactJson(['ok' => true]);
         $this->assertSame(['injected:injected'], ExampleAction::$trace);
-        $this->postJson('/actions', ['action' => 'example'])->assertOk();
+        $this->postJson('/actions?action=example', ['action' => 'missing'])->assertOk();
+        $this->postJson('/actions', ['action' => 'example'])->assertNotFound();
+    }
+
+    public function test_body_source_reads_json_and_form_data_only(): void
+    {
+        config(['exert.action_source' => 'body', 'exert.action_key' => 'operation']);
+        $this->postJson('/actions?operation=missing', ['operation' => 'example'])->assertOk();
+        $this->post('/actions?operation=missing', ['operation' => 'example'])->assertOk();
+        $this->postJson('/actions?operation=example', [])->assertNotFound();
+        $this->post('/actions?operation=example', [])->assertNotFound();
+        $this->get('/actions?operation=example')->assertNotFound();
+    }
+
+    public function test_both_source_preserves_input_behavior(): void
+    {
+        config(['exert.action_source' => 'both']);
+        $this->getJson('/actions?action=example')->assertOk();
+        $this->postJson('/actions?action=example', [])->assertOk();
+        $this->postJson('/actions?action=missing', ['action' => 'example'])->assertOk();
+        $this->post('/actions?action=missing', ['action' => 'example'])->assertOk();
+        $this->postJson('/actions?action=example', ['action' => 'missing'])->assertNotFound();
+    }
+
+    public function test_invalid_source_throws_configuration_exception(): void
+    {
+        config(['exert.action_source' => 'invalid']);
+        $this->withoutExceptionHandling();
+        $this->expectException(\LogicException::class);
+        $this->getJson('/actions?action=example');
     }
 
     public function test_custom_key_and_legacy_key_rejection(): void
@@ -34,6 +64,7 @@ class ActionDispatchTest extends TestCase
     #[DataProvider('invalidInputs')]
     public function test_invalid_selection_returns_404(array $input): void
     {
+        config(['exert.action_source' => 'body']);
         $this->postJson('/actions', $input)->assertNotFound();
         $this->assertSame(0, ExampleAction::$runs);
     }
@@ -62,7 +93,7 @@ class ActionDispatchTest extends TestCase
 
     public function test_405_lists_normalized_unique_methods(): void
     {
-        $this->putJson('/actions', ['action' => 'example'])->assertStatus(405)->assertHeader('Allow', 'GET, POST');
+        $this->putJson('/actions?action=example', [])->assertStatus(405)->assertHeader('Allow', 'GET, POST');
         $this->assertSame(0, ExampleAction::$runs);
         $this->assertSame('example', $this->app['request']->attributes->get('exert.action'));
     }

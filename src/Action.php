@@ -91,7 +91,7 @@ abstract class Action implements ActionInterface
             ->send($request)
             ->through($middlewares)
             // Convert action results before they return through HTTP middleware.
-            ->then(fn (Request $request) => $router->prepareResponse(
+            ->then(fn (Request $request) => $router->toResponse(
                 $request,
                 app()->call([$this, 'handle'])
             ));
