@@ -58,12 +58,7 @@ abstract class Action implements ActionInterface
             // Let Laravel render the standard 405 response with an Allow header.
             throw new MethodNotAllowedHttpException(
                 $allowedMethods,
-                sprintf(
-                    'The %s method is not supported for action %s. Supported methods: %s.',
-                    $request->method(),
-                    static::class,
-                    implode(', ', $allowedMethods)
-                )
+                'The request method is not supported for this action.'
             );
         }
 
