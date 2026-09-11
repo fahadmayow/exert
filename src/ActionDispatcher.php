@@ -19,9 +19,13 @@ class ActionDispatcher extends BoundMethod
             return $container->call($callback);
         }
 
-        // Resolve dependencies, including FormRequest validation,
+        // Resolve dependencies in the same context as Container::call(),
         // without invoking the action or a container method binding.
-        static::getMethodDependencies($container, $callback);
+        ContainerCallContext::run(
+            $container,
+            $callback,
+            fn () => static::getMethodDependencies($container, $callback),
+        );
 
         abort(204, headers: [
             'Precognition-Success' => 'true',
