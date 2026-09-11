@@ -14,11 +14,18 @@ class {{ class }} extends Action
     protected array $methods = ['GET'];
 
     /**
-     * Request middlewares.
+     * Allow request precognition.
+     *
+     * @var boolean
+     */
+    protected bool $precognition = true;
+
+    /**
+     * Request middleware.
      *
      * @return array
      */
-    protected function middlewares(): array
+    protected function middleware(): array
     {
         return [];
     }

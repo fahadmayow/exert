@@ -392,7 +392,7 @@ php artisan make:action Users/CreateUser
 Actions are generated in the configured `actions_path`. The template extends `Exert\Action` and includes:
 
 - A `$methods` array set to `['GET']`.
-- An empty `middlewares()` method.
+- An empty `middleware()` method.
 - A public `handle()` method returning a placeholder string to replace with your implementation.
 
 ### Options and overwrite protection
@@ -495,10 +495,10 @@ Import the controllers you use and choose middleware appropriate to your applica
 
 ### Action-specific middleware
 
-Override `middlewares()` in an action to apply checks needed only for that operation:
+Override `middleware()` in an action to apply checks needed only for that operation:
 
 ```php
-protected function middlewares(): array
+protected function middleware(): array
 {
     return [
         'can:export-reports',
@@ -641,7 +641,7 @@ RateLimiter::for('exert-operation', function (Request $request) {
 Apply the limiter inside the action, where the resolver has already set the metadata:
 
 ```php
-protected function middlewares(): array
+protected function middleware(): array
 {
     return ['throttle:exert-operation'];
 }

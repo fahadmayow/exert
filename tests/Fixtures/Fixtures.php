@@ -23,7 +23,7 @@ class ExampleAction extends Action
 
     public function __construct(private Service $service) {}
 
-    protected function middlewares(): array { return self::$middleware; }
+    protected function middleware(): array { return self::$middleware; }
 
     public function handle(Request $request, Service $service): mixed
     {

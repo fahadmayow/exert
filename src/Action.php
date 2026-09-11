@@ -32,7 +32,7 @@ abstract class Action implements ActionInterface
      * Return action middleware aliases, groups, class names, or closures.
      * Laravel resolves the list and applies its configured middleware priority.
      */
-    protected function middlewares(): array
+    protected function middleware(): array
     {
         return [];
     }
@@ -52,7 +52,7 @@ abstract class Action implements ActionInterface
     {
         return [
             ...($this->precognition ? [HandlePrecognitiveRequests::class] : []),
-            ...$this->middlewares(),
+            ...$this->middleware(),
         ];
     }
 
@@ -87,7 +87,7 @@ abstract class Action implements ActionInterface
             app()->make('middleware.disable') === true;
 
         // Apply route exclusions and Laravel's middleware resolution and priority.
-        $middlewares = $shouldSkipMiddleware ? [] : $router->resolveMiddleware(
+        $middleware = $shouldSkipMiddleware ? [] : $router->resolveMiddleware(
             $this->getActionMiddleware(),
             $request->route()?->excludedMiddleware() ?? []
         );
@@ -99,7 +99,7 @@ abstract class Action implements ActionInterface
         // Middleware should mutate the current request rather than replace it.
         return app(Pipeline::class)
             ->send($request)
-            ->through($middlewares)
+            ->through($middleware)
             // Convert action results before they return through HTTP middleware.
             ->then(fn (Request $request) => $router->toResponse(
                 $request,
