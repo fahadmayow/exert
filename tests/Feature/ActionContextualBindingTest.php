@@ -4,6 +4,7 @@ namespace Exert\Tests\Feature;
 
 use Exert\Action;
 use Exert\ActionDispatcher;
+use Exert\Tests\Fixtures\ExampleController;
 use Exert\Tests\TestCase;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
@@ -13,6 +14,104 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ActionContextualBindingTest extends TestCase
 {
+    public static function substitutedRequests(): array
+    {
+        return [
+            'normal valid' => [false, true, true],
+            'prediction valid' => [true, true, true],
+            'normal invalid' => [false, true, false],
+            'prediction invalid' => [true, true, false],
+            'normal unauthorized' => [false, false, true],
+            'prediction unauthorized' => [true, false, true],
+        ];
+    }
+
+    #[DataProvider('substitutedRequests')]
+    public function test_contextual_form_request_substitution(
+        bool $precognitive,
+        bool $authorized,
+        bool $valid,
+    ): void {
+        ExampleController::$registry['contextual'] = ContextualAction::class;
+        $action = new ContextualAction();
+        $this->app->instance(ContextualAction::class, $action);
+        $this->app->when(ContextualAction::class)
+            ->needs(ContextualRequest::class)
+            ->give(SubstitutedContextualRequest::class);
+
+        // The original request requires name and always authorizes.
+        // The replacement requires email and checks the authorization input.
+        $response = $this->postJson('/actions?action=contextual', [
+            'allowed' => $authorized,
+            'email' => $valid ? 'fahad@example.com' : 'invalid',
+        ], $precognitive ? ['Precognition' => 'true'] : []);
+
+        if (! $authorized) {
+            $response->assertForbidden();
+        } elseif (! $valid) {
+            $response->assertUnprocessable()
+                ->assertJsonValidationErrors(['email'])
+                ->assertJsonMissingValidationErrors(['name']);
+        } elseif ($precognitive) {
+            $response->assertNoContent()
+                ->assertHeader('Precognition-Success', 'true');
+        } else {
+            $response->assertOk()->assertExactJson([
+                'email' => 'fahad@example.com',
+            ]);
+        }
+
+        $this->assertSame(
+            ! $precognitive && $authorized && $valid ? 1 : 0,
+            $action->runs,
+        );
+    }
+
+    public static function predictions(): array
+    {
+        return ['valid' => [true], 'invalid' => [false]];
+    }
+
+    #[DataProvider('predictions')]
+    public function test_prediction_isolates_and_preserves_method_binding(bool $valid): void
+    {
+        ExampleController::$registry['contextual'] = ContextualAction::class;
+        $action = new ContextualAction();
+        $this->app->instance(ContextualAction::class, $action);
+        $bindingRuns = 0;
+
+        $this->app->bindMethod([ContextualAction::class, 'handle'], function () use (&$bindingRuns) {
+            $bindingRuns++;
+
+            return ['bound' => true];
+        });
+
+        $this->postJson('/actions?action=contextual')
+            ->assertOk()->assertExactJson(['bound' => true]);
+        $this->assertSame(1, $bindingRuns);
+
+        $response = $this->postJson(
+            '/actions?action=contextual',
+            $valid ? ['name' => 'Fahad'] : [],
+            ['Precognition' => 'true'],
+        );
+
+        if ($valid) {
+            $response->assertNoContent()
+                ->assertHeader('Precognition-Success', 'true');
+        } else {
+            $response->assertUnprocessable()->assertJsonValidationErrors(['name']);
+        }
+
+        $this->assertSame(1, $bindingRuns);
+        $this->assertSame(0, $action->runs);
+
+        $this->postJson('/actions?action=contextual')
+            ->assertOk()->assertExactJson(['bound' => true]);
+        $this->assertSame(2, $bindingRuns);
+        $this->assertSame(0, $action->runs);
+    }
+
     public static function requests(): array
     {
         return [
@@ -86,6 +185,10 @@ class ContextDependency
 
 class ContextualAction extends Action
 {
+    protected array $methods = ['POST'];
+
+    protected bool $precognition = true;
+
     public int $runs = 0;
 
     public function handle(
@@ -108,5 +211,18 @@ class ContextualRequest extends FormRequest
     public function rules(): array
     {
         return ['name' => ['required', 'string']];
+    }
+}
+
+class SubstitutedContextualRequest extends ContextualRequest
+{
+    public function authorize(): bool
+    {
+        return $this->boolean('allowed');
+    }
+
+    public function rules(): array
+    {
+        return ['email' => ['required', 'email']];
     }
 }
