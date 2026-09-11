@@ -40,6 +40,17 @@ abstract class ActionController
         }
 
         $actionKey = config('exert.action_key', 'action');
+
+        if (
+            !is_string($actionKey) ||
+            preg_match('/\A[A-Za-z_][A-Za-z0-9_]*\z/', $actionKey) !== 1
+        ) {
+            throw new LogicException(
+                'exert.action_key must start with a letter or underscore '
+                .'and contain only letters, numbers, and underscores.'
+            );
+        }
+
         $currentAction = match (config('exert.action_source', 'query')) {
             'query' => $request->query($actionKey),
             'body' => $request->isJson()

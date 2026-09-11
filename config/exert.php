@@ -2,6 +2,8 @@
 
 return [
     // Request input key used to select a registered action.
+    // Must start with an ASCII letter or underscore and contain only
+    // ASCII letters, numbers, and underscores (no dots or brackets).
     'action_key' => 'action',
 
     // Where to read the action key: 'query', 'body', or 'both' (Laravel input()).
