@@ -5,7 +5,9 @@ namespace Exert\Tests\Feature;
 use Exert\Tests\TestCase;
 use Exert\Tests\Fixtures\{ExampleAction, ExampleController, HiddenHandlerAction};
 use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ActionDispatchTest extends TestCase
@@ -96,6 +98,60 @@ class ActionDispatchTest extends TestCase
         $this->putJson('/actions?action=example', [])->assertStatus(405)->assertHeader('Allow', 'GET, POST');
         $this->assertSame(0, ExampleAction::$runs);
         $this->assertSame('example', $this->app['request']->attributes->get('exert.action'));
+    }
+
+    public function test_allow_header_only_lists_methods_supported_by_the_route(): void
+    {
+        // ExampleAction declares GET and POST.
+        app(Router::class)->exert(
+            '/restricted-actions',
+            ExampleController::class,
+            ['POST', 'PUT'],
+        );
+
+        $this->putJson('/restricted-actions?action=example', [])
+            ->assertStatus(405)
+            ->assertHeader('Allow', 'POST');
+
+        $this->assertSame(0, ExampleAction::$runs);
+
+        $this->postJson('/restricted-actions?action=example', [])
+            ->assertOk();
+
+        $this->assertSame(1, ExampleAction::$runs);
+    }
+
+    public function test_no_shared_methods_returns_an_empty_allow_header(): void
+    {
+        app(Router::class)->exert(
+            '/restricted-actions',
+            ExampleController::class,
+            ['PUT'],
+        );
+
+        $this->putJson('/restricted-actions?action=example', [])
+            ->assertStatus(405)
+            ->assertHeader('Allow', '');
+
+        $this->assertSame(0, ExampleAction::$runs);
+    }
+
+    public function test_direct_dispatch_uses_declared_methods_without_a_route(): void
+    {
+        $request = Request::create('/actions', 'PUT');
+
+        try {
+            app(ExampleAction::class)->initiate($request);
+
+            $this->fail('Expected a method-not-allowed exception.');
+        } catch (MethodNotAllowedHttpException $exception) {
+            $this->assertSame(
+                'GET, POST',
+                $exception->getHeaders()['Allow'],
+            );
+        }
+
+        $this->assertSame(0, ExampleAction::$runs);
     }
 
     public function test_default_get_and_explicit_head_requirement(): void

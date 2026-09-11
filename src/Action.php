@@ -63,6 +63,13 @@ abstract class Action implements ActionInterface
     {
         $allowedMethods = $this->getAllowedMethods();
 
+        if ($route = $request->route()) {
+            $allowedMethods = array_values(array_intersect(
+                $allowedMethods,
+                $route->methods(),
+            ));
+        }
+
         if (!in_array(strtoupper($request->method()), $allowedMethods, true)) {
             // Let Laravel render the standard 405 response with an Allow header.
             throw new MethodNotAllowedHttpException(
