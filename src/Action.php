@@ -2,6 +2,7 @@
 
 namespace Exert;
 
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Pipeline;
 use Illuminate\Routing\Router;
@@ -21,6 +22,11 @@ abstract class Action implements ActionInterface
      * @var array<string>
      */
     protected array $methods = ['GET'];
+
+    /**
+     * Enable Laravel Precognition for this action.
+     */
+    protected bool $precognition = false;
 
     /**
      * Return action middleware aliases, groups, class names, or closures.
@@ -44,7 +50,10 @@ abstract class Action implements ActionInterface
      */
     public function getActionMiddleware(): array
     {
-        return $this->middlewares();
+        return [
+            ...($this->precognition ? [HandlePrecognitiveRequests::class] : []),
+            ...$this->middlewares(),
+        ];
     }
 
     /**
@@ -85,7 +94,8 @@ abstract class Action implements ActionInterface
 
         // The HTTP pipeline lets Laravel render exceptions before middleware unwinds.
         // Middleware can return a response early or pass the request to the next step.
-        // The container injects handle() dependencies, including its bound Request.
+        // The dispatcher resolves handle() dependencies and skips execution
+        // for precognitive requests.
         // Middleware should mutate the current request rather than replace it.
         return app(Pipeline::class)
             ->send($request)
@@ -93,7 +103,7 @@ abstract class Action implements ActionInterface
             // Convert action results before they return through HTTP middleware.
             ->then(fn (Request $request) => $router->toResponse(
                 $request,
-                app()->call([$this, 'handle'])
+                ActionDispatcher::dispatch(app(), $this, $request)
             ));
     }
 }
