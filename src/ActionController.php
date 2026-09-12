@@ -12,6 +12,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 abstract class ActionController
 {
+    public const DEFAULT_ACTION = '/';
+
+    public const FALLBACK_ACTION = '*';
+
     /**
      * Map permitted action names to their action class names.
      *
@@ -51,25 +55,33 @@ abstract class ActionController
             );
         }
 
-        $currentAction = match (config('exert.action_source', 'query')) {
-            'query' => $request->query($actionKey),
+        $input = match (config('exert.action_source', 'query')) {
+            'query' => $request->query(),
             'body' => $request->isJson()
-                ? $request->json($actionKey)
-                : $request->post($actionKey),
-            'both' => $request->input($actionKey),
+                ? $request->json()->all()
+                : $request->post(),
+            'both' => $request->input(),
             default => throw new LogicException('exert.action_source must be query, body, or both.'),
         };
+        $hasAction = array_key_exists($actionKey, $input);
+        $currentAction = $hasAction ? $input[$actionKey] : null;
         $actions = $this->getActions();
 
+        $resolvedAction = match (true) {
+            !$hasAction && array_key_exists(self::DEFAULT_ACTION, $actions) => self::DEFAULT_ACTION,
+            !$hasAction => self::FALLBACK_ACTION,
+            is_string($currentAction)
+                && $currentAction !== self::DEFAULT_ACTION
+                && array_key_exists($currentAction, $actions) => $currentAction,
+            default => self::FALLBACK_ACTION,
+        };
+
         // Only dispatch registered names; never treat user input as a class name.
-        if (
-            !is_string($currentAction) ||
-            !array_key_exists($currentAction, $actions)
-        ) {
+        if (!array_key_exists($resolvedAction, $actions)) {
             throw new NotFoundHttpException('Action not found.');
         }
 
-        $actionClass = $actions[$currentAction];
+        $actionClass = $actions[$resolvedAction];
 
         if (!class_exists($actionClass)) {
             throw new NotFoundHttpException('Action not found.');
@@ -86,10 +98,10 @@ abstract class ActionController
         }
 
         // Use validated registry values, not arbitrary client input, as operation labels.
-        $request->attributes->set('exert.action', $currentAction);
+        $request->attributes->set('exert.action', $resolvedAction);
         $request->attributes->set('exert.action_class', $actionClass);
         $request->attributes->set('exert.controller', static::class);
-        $request->attributes->set('exert.action_id', static::class.'::'.$currentAction);
+        $request->attributes->set('exert.action_id', static::class.'::'.$resolvedAction);
 
         return $action->initiate($request);
     }

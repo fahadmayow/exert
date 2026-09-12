@@ -12,7 +12,20 @@ In `?action=orders.cancel`:
 
 The input key must start with an ASCII letter or underscore. The rest may contain ASCII letters, numbers, and underscores. For example, `operation` and `_action` are valid; `operation.name`, `action[]`, and `1action` are not. Invalid key configuration throws a `LogicException`.
 
-Action names may contain dots or hyphens. They must match a registered name exactly. The resolver accepts only string values; missing, unknown, or non-string selections return `404`.
+Action names may contain dots or hyphens. They must match a registered name exactly. The resolver accepts only string values. By default, missing, unknown, or non-string selections return `404`.
+
+## Default and fallback actions
+
+Controllers may register two reserved action names:
+
+| Name | When it is selected |
+| --- | --- |
+| `/` | The configured input key is absent from the configured source. |
+| `*` | The input key is present but invalid or unregistered, or the key is absent and `/` is not registered. |
+
+An exact registered action always takes precedence, except that `/` cannot be selected by a request value. When the key is completely absent, the resolver tries `/` first and then `*`. A present empty, `null`, `/`, array, or otherwise invalid value selects `*`, not `/`. If neither applicable reserved action is registered, the resolver returns `404` as usual.
+
+The distinction follows `action_source`. For example, with `query`, a body-only `action` value does not make the query key present, so `/` is selected when it is registered.
 
 To change the key:
 
@@ -67,5 +80,7 @@ Middleware that needs the selected operation should read Exert's request attribu
 ```php
 $selected = $request->attributes->get('exert.action');
 ```
+
+For a default or fallback dispatch, this attribute contains `/` or `*`, and `exert.action_id` uses the same resolved name.
 
 See [Logging and metadata](/guides/logging) for when these attributes become available.

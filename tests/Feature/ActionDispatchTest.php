@@ -3,7 +3,7 @@
 namespace Exert\Tests\Feature;
 
 use Exert\Tests\TestCase;
-use Exert\Tests\Fixtures\{ExampleAction, ExampleController, HiddenHandlerAction};
+use Exert\Tests\Fixtures\{DefaultAction, ExampleAction, ExampleController, HiddenHandlerAction};
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -69,6 +69,87 @@ class ActionDispatchTest extends TestCase
         config(['exert.action_source' => 'body']);
         $this->postJson('/actions', $input)->assertNotFound();
         $this->assertSame(0, ExampleAction::$runs);
+    }
+
+    public function test_slash_action_handles_a_missing_key_for_each_source(): void
+    {
+        ExampleController::$registry['/'] = ExampleAction::class;
+        ExampleController::$registry['*'] = DefaultAction::class;
+
+        config(['exert.action_source' => 'query']);
+        $this->postJson('/actions', ['action' => 'example'])->assertOk();
+        $this->assertSame('/', $this->app['request']->attributes->get('exert.action'));
+
+        config(['exert.action_source' => 'body']);
+        $this->postJson('/actions?action=example')->assertOk();
+        $this->assertSame('/', $this->app['request']->attributes->get('exert.action'));
+
+        config(['exert.action_source' => 'both']);
+        $this->postJson('/actions')->assertOk();
+        $this->assertSame('/', $this->app['request']->attributes->get('exert.action'));
+        $this->assertSame(
+            ExampleController::class.'::/',
+            $this->app['request']->attributes->get('exert.action_id'),
+        );
+        $this->assertSame(3, ExampleAction::$runs);
+    }
+
+    public function test_slash_action_cannot_be_selected_by_a_present_value(): void
+    {
+        ExampleController::$registry['/'] = ExampleAction::class;
+
+        $this->call('GET', '/actions', ['action' => ''])->assertNotFound();
+        $this->call('GET', '/actions', ['action' => '/'])->assertNotFound();
+        $this->assertSame(0, ExampleAction::$runs);
+    }
+
+    public function test_star_action_handles_a_missing_key_when_slash_is_not_registered(): void
+    {
+        ExampleController::$registry['*'] = ExampleAction::class;
+
+        config(['exert.action_source' => 'query']);
+        $this->postJson('/actions', ['action' => 'example'])->assertOk();
+
+        config(['exert.action_source' => 'body']);
+        $this->postJson('/actions?action=example')->assertOk();
+
+        config(['exert.action_source' => 'both']);
+        $this->postJson('/actions')->assertOk();
+
+        $this->assertSame('*', $this->app['request']->attributes->get('exert.action'));
+        $this->assertSame(3, ExampleAction::$runs);
+    }
+
+    public function test_star_action_handles_unregistered_and_non_string_values(): void
+    {
+        ExampleController::$registry['*'] = ExampleAction::class;
+
+        config(['exert.action_source' => 'query']);
+        $this->getJson('/actions?action=missing')->assertOk();
+        $this->call('GET', '/actions', ['action' => ''])->assertOk();
+        $this->call('GET', '/actions', ['action' => '/'])->assertOk();
+        $this->assertSame('*', $this->app['request']->attributes->get('exert.action'));
+
+        config(['exert.action_source' => 'body']);
+        $this->postJson('/actions', ['action' => []])->assertOk();
+        $this->postJson('/actions', ['action' => null])->assertOk();
+
+        config(['exert.action_source' => 'both']);
+        $this->postJson('/actions', ['action' => 'missing'])->assertOk();
+        $this->assertSame('*', $this->app['request']->attributes->get('exert.action'));
+        $this->assertSame(
+            ExampleController::class.'::*',
+            $this->app['request']->attributes->get('exert.action_id'),
+        );
+        $this->assertSame(6, ExampleAction::$runs);
+    }
+
+    public function test_exact_action_takes_precedence_over_star_fallback(): void
+    {
+        ExampleController::$registry['*'] = DefaultAction::class;
+
+        $this->getJson('/actions?action=example')->assertOk()->assertExactJson(['ok' => true]);
+        $this->assertSame('example', $this->app['request']->attributes->get('exert.action'));
     }
 
     public function test_missing_class_returns_404(): void

@@ -19,13 +19,17 @@ use Exert\ActionController;
 class SystemController extends ActionController
 {
     protected array $actions = [
+        '/' => Status::class,
         'status' => Status::class,
         'echo' => EchoMessage::class,
+        '*' => Status::class,
     ];
 }
 ```
 
 The classes above are defined in [Your first endpoint](/start/first-action).
+
+The `/` entry is optional and handles requests where the configured action key is completely absent. It cannot be selected by sending `/` as the value, and a present empty value does not select it. The `*` entry is optional and handles invalid or unregistered values. It also handles a missing key when `/` is not registered. Without an applicable entry, those requests return 404.
 
 ## Names are part of your API
 
@@ -39,7 +43,7 @@ Choose names that make sense to the caller. A small group may only need `cancel`
 
 The route calls the inherited `resolve()` method. It reads the selected name, checks the map, creates the mapped class through Laravel's container, and calls its `initiate()` method.
 
-Unknown names return 404. User input is never used directly as a PHP class name.
+Unknown names return 404 unless a `*` fallback is registered. A missing selection uses `/` when available, falls back to `*`, and otherwise returns 404. User input is never used directly as a PHP class name.
 
 ::: warning Registration is not a permission check
 Putting `refund` in the map means it can be selected. Your route middleware, action middleware, form request, or policy must still decide who may refund which order.
