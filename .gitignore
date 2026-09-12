@@ -1,6 +1,12 @@
 
+/node_modules/
+
 /vendor/
 
 /.phpunit.cache/
 
 /.phpunit.result.cache
+
+/docs/.vitepress/cache/
+
+/docs/.vitepress/dist/
