@@ -13,38 +13,24 @@ Each operation gets its own action class. A controller explicitly maps the names
 
 ## Documentation
 
-The full guide now lives in the **VitePress documentation site** under [`docs/`](docs/index.md):
+Read the complete guide on the [Exert documentation site](https://fahadmayow.github.io/exert/):
 
-- [Meet Exert](docs/start/what-is-exert.md) — the idea, the tradeoffs, and when it fits.
-- [Installation](docs/start/installation.md) — requirements and Composer installation.
-- [Your first endpoint](docs/start/first-action.md) — a complete example with no database.
-- [An order workflow](docs/guides/order-workflow.md) — validation, authorization, and a state change.
-- [Precognition](docs/precognition/overview.md) — action-based input prediction.
-- [Configuration reference](docs/reference/configuration.md) and [troubleshooting](docs/reference/troubleshooting.md).
+- [Meet Exert](https://fahadmayow.github.io/exert/start/what-is-exert) — the idea, the tradeoffs, and when it fits.
+- [Installation](https://fahadmayow.github.io/exert/start/installation) — requirements and Composer installation.
+- [Your first endpoint](https://fahadmayow.github.io/exert/start/first-action) — a complete example with no database.
+- [An order workflow](https://fahadmayow.github.io/exert/guides/order-workflow) — validation, authorization, and a state change.
+- [Precognition](https://fahadmayow.github.io/exert/precognition/overview) — action-based input prediction.
+- [Configuration reference](https://fahadmayow.github.io/exert/reference/configuration) and [troubleshooting](https://fahadmayow.github.io/exert/reference/troubleshooting).
 
 ## Installation
 
-The package requires Laravel `^13.31`. In your Laravel application, run:
+The package requires Laravel 12.51 or later, including Laravel 13. In your Laravel application, run:
 
 ```bash
 composer require fahadmayow/exert
 ```
 
-See the [installation guide](docs/start/installation.md) for provider registration and optional configuration publishing.
-
-## Read the site locally
-
-With the project's VitePress dependency installed:
-
-```bash
-node node_modules/vitepress/bin/vitepress.js dev docs
-```
-
-Build the static documentation:
-
-```bash
-node node_modules/vitepress/bin/vitepress.js build docs
-```
+See the [installation guide](https://fahadmayow.github.io/exert/start/installation) for provider registration and optional configuration publishing.
 
 ## Package development
 
@@ -53,7 +39,7 @@ composer install
 composer test
 ```
 
-See [Package development](docs/contributing/development.md) for more checks and documentation commands.
+See [Package development](https://fahadmayow.github.io/exert/contributing/development) for more checks and documentation commands.
 
 ## License
 
