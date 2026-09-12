@@ -18,7 +18,7 @@ Here, `MessageService` is an application service you define and import. Bind int
 
 Constructor injection is supported too. Keep constructors free of writes and other side effects: the action is created **before** method checks and action middleware. Constructors also run when `exert:list` resolves classes. Dependencies that require an action middleware's user or tenant context should be resolved in `handle()` after that middleware runs.
 
-Scalar parameters are not filled from request input. `handle(string $email)` does not read an `email` field automatically. Read validated input from a request instead.
+Scalar parameters are not filled from request input. They may receive a same-named route parameter, but `handle(string $email)` does not read an `email` body or query field automatically. Read validated input from a request instead. See [Route parameters](/concepts/route-parameters) for route-value injection.
 
 ## Bind an interface for one action
 

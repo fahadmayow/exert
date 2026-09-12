@@ -14,9 +14,10 @@ class ActionDispatcher extends BoundMethod
         Request $request,
     ): mixed {
         $callback = [$action, 'handle'];
+        $parameters = $request->route()?->parametersWithoutNulls() ?? [];
 
         if (! $request->isPrecognitive()) {
-            return $container->call($callback);
+            return $container->call($callback, $parameters);
         }
 
         // Resolve dependencies in the same context as Container::call(),
@@ -24,7 +25,7 @@ class ActionDispatcher extends BoundMethod
         ContainerCallContext::run(
             $container,
             $callback,
-            fn () => static::getMethodDependencies($container, $callback),
+            fn () => static::getMethodDependencies($container, $callback, $parameters),
         );
 
         abort(204, headers: [

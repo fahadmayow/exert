@@ -13,7 +13,7 @@ For the supplied base classes, Exert:
 4. Adds the selected action's identity to request attributes.
 5. Checks the allowed HTTP method and that `handle()` is public.
 6. Resolves and runs action middleware, applying route exclusions.
-7. Resolves handler dependencies. For a prediction, validates them and stops before execution.
+7. Supplies named route parameters and resolves the remaining handler dependencies. For a prediction, validates them and stops before execution.
 8. Runs `handle()` for a normal request and converts its result to an HTTP response.
 
 Exert uses Laravel's HTTP pipeline. Exceptions inside it are handled by Laravel's exception handler, allowing surrounding middleware to process the resulting error response as the pipeline returns.

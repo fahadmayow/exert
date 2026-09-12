@@ -1,42 +1,63 @@
 ---
 title: "Route parameters"
-description: "Read a route value without assuming handler model binding."
+description: "Receive route values and explicitly bound models in an action handler."
 ---
 
 # Route parameters
 
-Action handler arguments do not receive Laravel controller route-parameter mapping. For a route such as `/orders/{order}`, read the parameter from the request:
+Route parameters are injected into `handle()` by name. For a route such as `/orders/{order}`:
 
 ```php
-$order = $request->route('order');
+public function handle(string $order): array
+{
+    return ['order' => $order];
+}
 ```
 
-Do not assume that `handle(Order $order)` loads that order. The container may create a model instance instead. Implicit model binding based on an action's handler signature does not run. Use an explicit route binding or load and authorize the record yourself. A route value is a model only if a binding has already resolved it.
+The argument name must match the route placeholder. Optional route parameters that are absent do not override a handler default:
+
+```php
+public function handle(string $order, string $section = 'overview'): array
+{
+    return compact('order', 'section');
+}
+```
+
+Services, requests, and form requests continue to resolve through Laravel's container alongside route values.
+
+## Model binding
+
+An object produced by an explicit route binding is passed through to the matching handler argument:
+
+```php
+Route::model('order', Order::class);
+
+public function handle(Order $order): array
+{
+    return ['id' => $order->getKey()];
+}
+```
+
+Implicit model binding based only on an action's `handle()` signature does not run. Laravel sees the route's controller method as `resolve(Request $request)`, so it does not inspect the selected action signature when applying implicit bindings. Register an explicit route binding, or load and authorize the record yourself.
 
 ## Load a record explicitly
 
-For a route such as `/orders/{order}`, a handler can read and load the record:
+Without route binding, a handler can receive the raw identifier and load the record:
 
 ```php
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-public function handle(Request $request): array
+public function handle(string $order): array
 {
-    $order = Order::query()->findOrFail($request->route('order'));
+    $order = Order::query()->findOrFail($order);
     Gate::authorize('view', $order);
 
     return ['id' => $order->getKey(), 'status' => $order->status];
 }
 ```
 
-This is a method excerpt for an application with an `Order` model and a `view` policy. It assumes no earlier binding has converted the route value into a model. If you add an explicit route binding, use the resolved model directly instead.
-
-## Why the usual signature behaves differently
-
-Laravel sees the route's controller method as `resolve(Request $request)`. It does not inspect the selected action's `handle()` signature for implicit route binding.
-
-Exert calls the handler through the container. A type hint asks the container for a dependency; it does not tell Exert which URL segment to use.
+This is a method excerpt for an application with an `Order` model and a `view` policy.
 
 For request-body record IDs, validate the ID in a form request, then load and authorize the record. The [order workflow](/guides/order-workflow) uses that approach.

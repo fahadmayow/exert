@@ -2,9 +2,12 @@
 
 namespace Exert\Tests\Feature;
 
+use Exert\Action;
 use Exert\Tests\TestCase;
 use Exert\Tests\Fixtures\{DefaultAction, ExampleAction, ExampleController, HiddenHandlerAction};
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -235,6 +238,56 @@ class ActionDispatchTest extends TestCase
         $this->assertSame(0, ExampleAction::$runs);
     }
 
+    public function test_route_parameters_are_injected_by_name_with_container_dependencies(): void
+    {
+        ExampleController::$registry['routed'] = RouteParameterAction::class;
+        app(Router::class)->exert(
+            '/orders/{order}/{section?}',
+            ExampleController::class,
+        );
+
+        $this->getJson('/orders/42?action=routed')->assertOk()->assertExactJson([
+            'order' => '42',
+            'section' => 'overview',
+            'dependency' => true,
+        ]);
+
+        $this->getJson('/orders/42/history?action=routed')->assertOk()->assertExactJson([
+            'order' => '42',
+            'section' => 'history',
+            'dependency' => true,
+        ]);
+    }
+
+    public function test_explicitly_bound_route_parameters_are_injected(): void
+    {
+        ExampleController::$registry['bound'] = BoundRouteParameterAction::class;
+        $router = app(Router::class);
+        $router->bind('order', fn (string $value) => new BoundRouteValue($value));
+        $router->exert('/bound-orders/{order}', ExampleController::class)
+            ->middleware(SubstituteBindings::class);
+
+        $this->getJson('/bound-orders/42?action=bound')->assertOk()->assertExactJson([
+            'order' => 'bound-42',
+        ]);
+    }
+
+    public function test_route_parameters_are_available_during_precognition_resolution(): void
+    {
+        ExampleController::$registry['routed-precognition'] = RoutePrecognitiveAction::class;
+        app(Router::class)->exert(
+            '/predicted-orders/{order}',
+            ExampleController::class,
+            'POST',
+        );
+
+        $this->postJson(
+            '/predicted-orders/42?action=routed-precognition',
+            ['name' => 'Fahad'],
+            ['Precognition' => 'true'],
+        )->assertNoContent()->assertHeader('Precognition-Success', 'true');
+    }
+
     public function test_default_get_and_explicit_head_requirement(): void
     {
         $this->get('/actions?action=default')->assertOk()->assertContent('default');
@@ -262,5 +315,64 @@ class ActionDispatchTest extends TestCase
                 $this->assertFalse($request->attributes->has($key));
             }
         }
+    }
+}
+
+class RouteDependency
+{
+}
+
+class RouteParameterAction extends Action
+{
+    public function handle(
+        string $order,
+        RouteDependency $dependency,
+        string $section = 'overview',
+    ): array {
+        return [
+            'order' => $order,
+            'section' => $section,
+            'dependency' => $dependency instanceof RouteDependency,
+        ];
+    }
+}
+
+class BoundRouteValue
+{
+    public function __construct(public string $value)
+    {
+    }
+}
+
+class BoundRouteParameterAction extends Action
+{
+    public function handle(BoundRouteValue $order): array
+    {
+        return ['order' => 'bound-'.$order->value];
+    }
+}
+
+class RoutePrecognitiveAction extends Action
+{
+    protected array $methods = ['POST'];
+
+    protected bool $precognition = true;
+
+    public function handle(string $order, RouteParameterRequest $request): array
+    {
+        return ['order' => $order, ...$request->validated()];
+    }
+}
+
+class RouteParameterRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return ['name' => ['required', 'string']];
     }
 }
