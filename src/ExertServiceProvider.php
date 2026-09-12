@@ -22,18 +22,18 @@ class ExertServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Register a normal controller route so chaining and route caching work.
+        // Support immediate controller routes and fluent controller/action routes.
         Router::macro('exert', function (
             string $uri,
-            string $controller,
+            ?string $controller = null,
             string|array|null $allowedMethod = null
-        ): RoutingRoute {
+        ): RoutingRoute|PendingExertRoute {
             // Laravel binds macro closures to the Router instance.
-            $action = [$controller, 'resolve'];
+            $pendingRoute = new PendingExertRoute($this, $uri);
 
-            return $allowedMethod === null
-                ? $this->any($uri, $action)
-                : $this->match((array) $allowedMethod, $uri, $action);
+            return $controller === null
+                ? $pendingRoute
+                : $pendingRoute->controller($controller, $allowedMethod);
         });
 
         if ($this->app->runningInConsole()) {

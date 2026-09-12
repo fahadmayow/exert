@@ -11,9 +11,16 @@ description: "Choose the endpoint, then let the controller choose the action."
 Route::exert('/system', SystemController::class, ['GET', 'POST']);
 ```
 
-The third argument accepts a method string, an array of methods, or `null`:
+The fluent form registers the same controller route:
 
-| Third argument | Route behavior |
+```php
+Route::exert('/system')
+    ->controller(SystemController::class, ['GET', 'POST']);
+```
+
+The method argument accepts a string, an array, or `null`. It is the third argument in the compact controller form and the second argument to `controller()` or `action()`:
+
+| Value | Route behavior |
 | --- | --- |
 | `'POST'` | Accept POST requests. |
 | `['GET', 'POST']` | Accept the listed methods, with Laravel's normal route behavior. |
@@ -21,11 +28,25 @@ The third argument accepts a method string, an array of methods, or `null`:
 
 Method names passed to the macro are case-insensitive. Each selected action still checks its own allowed methods.
 
+## Route an action directly
+
+Use `action()` when an endpoint has one action and does not need controller selection:
+
+```php
+Route::exert('/logout')
+    ->action(LogoutAction::class, 'POST');
+```
+
+This route calls the action's `initiate()` method. It does not read the configured action key or use an action-controller registry, but it still checks route and action methods, runs action middleware, injects route parameters and container dependencies, supports Precognition, and converts the result to an HTTP response.
+
+The class passed to `action()` must extend `Exert\Action`.
+
 The returned route supports Laravel's usual names, middleware, prefixes, domains, and groups:
 
 ```php
 Route::prefix('internal')->middleware('auth')->group(function () {
-    Route::exert('/system', SystemController::class, ['GET', 'POST'])
+    Route::exert('/system')
+        ->controller(SystemController::class, ['GET', 'POST'])
         ->name('internal.system');
 });
 ```
@@ -38,7 +59,7 @@ You can also register the resolver yourself:
 Route::match(['GET', 'POST'], '/system', [SystemController::class, 'resolve']);
 ```
 
-Choose one registration for an endpoint. The macro works with Laravel's route cache; it stores a controller handler rather than a route closure.
+Choose one registration for an endpoint. Both controller forms and direct action routes work with Laravel's route cache; they store class handlers rather than route closures.
 
 ## Keep routes explicit
 

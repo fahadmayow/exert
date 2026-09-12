@@ -12,6 +12,15 @@ $response = app(\App\Http\Actions\System\Status::class)
     ->initiate(request());
 ```
 
+To expose one action directly as an HTTP endpoint, use the fluent route API:
+
+```php
+Route::exert('/status')
+    ->action(\App\Http\Actions\System\Status::class, 'GET');
+```
+
+Laravel supplies the current request, and Exert runs the same action lifecycle as a direct `initiate()` call.
+
 This runs the action's method checks, middleware, dependency resolution, and response conversion. It does not run the resolver, populate Exert's action attributes, or rerun route middleware.
 
 If the request has a route, that route's method restrictions and middleware exclusions still apply. With no route, only the action's methods are used and no route exclusions are supplied.
