@@ -1,6 +1,6 @@
 {
   "name": "exert",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "An opinionated Laravel package for grouping small, focused action classes behind a single controller endpoint. Each action defines its own HTTP method, middleware, and handler, while the controller explicitly maps action names to the classes it allows.",
   "main": "release.js",
   "directories": {
@@ -19,7 +19,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/fahadmayow/exert/issues"
   },
