@@ -3,9 +3,8 @@
 final class LaravelVersionMatrix
 {
     private const SUPPORTED_MAJORS = [
-        11 => ['php' => '8.2', 'testbench' => '^9.0'],
-        12 => ['php' => '8.2', 'testbench' => '^10.0'],
-        13 => ['php' => '8.3', 'testbench' => '^11.0'],
+        12 => ['minimum' => '12.51.0', 'php' => '8.2', 'testbench' => '^10.0'],
+        13 => ['minimum' => '13.0.0', 'php' => '8.3', 'testbench' => '^11.0'],
     ];
 
     public static function generate(array $metadata, string $range): array
@@ -22,7 +21,11 @@ final class LaravelVersionMatrix
 
             $major = (int) $matches[1];
 
-            if ($major < $firstMajor || $major > $lastMajor) {
+            if (
+                $major < $firstMajor ||
+                $major > $lastMajor ||
+                version_compare($version, self::SUPPORTED_MAJORS[$major]['minimum'], '<')
+            ) {
                 continue;
             }
 
@@ -62,14 +65,16 @@ final class LaravelVersionMatrix
 
     private static function parseRange(string $range): array
     {
-        if (preg_match('/\A(\d+)\.x-(\d+)\.x\z/', $range, $matches) !== 1) {
+        if (preg_match('/\A(\d+)\.x(?:-(\d+)\.x)?\z/', $range, $matches) !== 1) {
             throw new InvalidArgumentException(
-                'Laravel range must use the format 11.x-13.x.'
+                'Laravel range must use the format 12.x or 12.x-13.x.'
             );
         }
 
         $firstMajor = (int) $matches[1];
-        $lastMajor = (int) $matches[2];
+        $lastMajor = isset($matches[2]) && $matches[2] !== ''
+            ? (int) $matches[2]
+            : $firstMajor;
         $supportedMajors = array_keys(self::SUPPORTED_MAJORS);
 
         if (
@@ -78,7 +83,7 @@ final class LaravelVersionMatrix
             !in_array($lastMajor, $supportedMajors, true)
         ) {
             throw new InvalidArgumentException(
-                'Laravel range must stay between 11.x and 13.x in ascending order.'
+                'Laravel range must stay between 12.x and 13.x in ascending order.'
             );
         }
 
@@ -88,7 +93,7 @@ final class LaravelVersionMatrix
 
 if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
     try {
-        $range = $argv[1] ?? '11.x-13.x';
+        $range = $argv[1] ?? '12.x-13.x';
         $source = getenv('PACKAGIST_METADATA_FILE');
         $json = $source
             ? file_get_contents($source)

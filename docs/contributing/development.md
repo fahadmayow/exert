@@ -21,12 +21,12 @@ composer test -- --filter=ActionContextualBindingTest
 
 The PHP suite uses Orchestra Testbench to boot Laravel. It covers dispatch, configuration, middleware, route caching, generators, action listing, and Precognition. Generator tests use temporary directories. A separate application or database server is not required for the package suite.
 
-The main GitHub Actions workflow tests the lowest and latest dependency boundaries for Laravel 11, 12, and 13 on their supported PHP versions. Precognition context handling depends on protected Laravel container internals, so keep those regression tests when changing supported framework versions.
+The main GitHub Actions workflow tests the lowest and latest dependency boundaries from Laravel 12.51 through Laravel 13 on their supported PHP versions.
 
-An exhaustive compatibility workflow discovers every stable Laravel patch release in a requested major range and runs the complete suite once per release. Patch releases are grouped into minor-line jobs to stay within GitHub Actions' matrix limit, but every exact version is installed and tested. Start it from GitHub Actions with a range such as `11.x-13.x`, or use GitHub CLI:
+An exhaustive compatibility workflow discovers every supported stable Laravel patch release in a requested major or major range and runs the complete suite once per release. Patch releases are grouped into minor-line jobs to stay within GitHub Actions' matrix limit, but every exact version is installed and tested. Laravel 12 discovery starts at 12.51. Start it from GitHub Actions with `12.x` or a range such as `12.x-13.x`, or use GitHub CLI:
 
 ```bash
-gh workflow run laravel-compatibility.yml -f laravel_range=11.x-13.x
+gh workflow run laravel-compatibility.yml -f laravel_range=12.x-13.x
 ```
 
 The workflow also runs weekly for the full supported range. Historical patch jobs disable Composer's insecure-package blocking inside isolated CI because their purpose is compatibility testing, not selecting dependencies for production.
