@@ -8,10 +8,11 @@ description: "Know which layer rejected the request."
 | Condition | Result |
 | --- | --- |
 | Missing, non-string, or unknown action name | `404` (`NotFoundHttpException`). |
-| Registered class does not exist | `404` (`NotFoundHttpException`). |
+| Selected registry value is not a valid class-string | `LogicException`; normally a server error. |
+| Registered class does not exist | `LogicException`; normally a server error. |
 | Unsupported HTTP method | `405` (`MethodNotAllowedHttpException`), with `Allow`. |
 | Invalid `action_key` or `action_source` configuration | `LogicException`; normally a server error. |
-| Mapped object does not implement `ActionInterface` | `LogicException`; normally a server error. |
+| Registered class does not implement `ActionInterface` | `LogicException`; normally a server error. |
 | Action has no public `handle()` | `LogicException`; normally a server error. |
 | Form request validation fails | Laravel's validation response; normally `422` for JSON. |
 | Form request authorization fails | Normally `403`. |
@@ -21,7 +22,7 @@ Send `Accept: application/json` when you want JSON errors. Exert uses your appli
 
 ## Read the error in context
 
-A 404 may mean the name is not in the map, but it can also mean a registered class cannot be loaded. Check namespaces and autoloading before assuming the client sent the wrong name.
+A 404 means no applicable action name was found in the registry. Once an entry is selected, an invalid value, missing class, or incompatible class is reported as a configuration error instead.
 
 A 405 can come from the outer Laravel route or from Exert's action method check. The route runs first. See [HTTP methods](/concepts/http-methods) for an example with two different method lists.
 

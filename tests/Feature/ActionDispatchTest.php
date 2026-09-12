@@ -155,10 +155,33 @@ class ActionDispatchTest extends TestCase
         $this->assertSame('example', $this->app['request']->attributes->get('exert.action'));
     }
 
-    public function test_missing_class_returns_404(): void
+    public function test_missing_registered_class_throws_configuration_exception(): void
     {
         ExampleController::$registry['missing'] = 'Exert\Tests\MissingClass';
-        $this->getJson('/actions?action=missing')->assertNotFound();
+        $this->withoutExceptionHandling();
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('registers action [missing] with missing class');
+        $this->getJson('/actions?action=missing');
+    }
+
+    public static function invalidRegistryValues(): array
+    {
+        return [
+            'null' => [null],
+            'array' => [[]],
+            'integer' => [12],
+            'empty string' => [''],
+        ];
+    }
+
+    #[DataProvider('invalidRegistryValues')]
+    public function test_invalid_registry_value_throws_configuration_exception(mixed $value): void
+    {
+        ExampleController::$registry['invalid'] = $value;
+        $this->withoutExceptionHandling();
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('registers action [invalid] with an invalid class');
+        $this->getJson('/actions?action=invalid');
     }
 
     public function test_invalid_contract_throws_configuration_exception(): void
@@ -166,6 +189,7 @@ class ActionDispatchTest extends TestCase
         ExampleController::$registry['invalid'] = \stdClass::class;
         $this->withoutExceptionHandling();
         $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('which must implement Exert\ActionInterface');
         $this->getJson('/actions?action=invalid');
     }
 

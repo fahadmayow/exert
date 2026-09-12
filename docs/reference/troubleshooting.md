@@ -8,7 +8,8 @@ description: "Start with the layer that failed."
 | Problem | What to check |
 | --- | --- |
 | Commands or `Route::exert()` are missing | Package installation and service-provider discovery. |
-| Action returns 404 | Correct source and key, exact registered name, applicable `/` or `*` registration, and class autoloading. Body-only selection does not work with the default `query` source. |
+| Action returns 404 | Correct source and key, exact registered name, and applicable `/` or `*` registration. Body-only selection does not work with the default `query` source. |
+| Selected action produces a configuration error | Check that its registry value is a class-string for an existing class that implements `ActionInterface`. |
 | Action returns 405 | Both the route's methods and the action's methods. GET does not automatically enable HEAD on an action. |
 | Invalid action-key error | Use a simple key with ASCII letters, numbers, and underscores, starting with a letter or underscore. |
 | Handler dependency cannot be resolved | Container bindings and parameter types. Scalar input and route models are not mapped automatically. |
@@ -27,7 +28,6 @@ description: "Start with the layer that failed."
 2. Check `exert.action_source`. The default expects the query string.
 3. Check the configured key and exact name in the controller map.
 4. For a missing key, check whether `/` or its `*` fallback is registered. For an unknown or invalid value, check whether `*` is registered.
-5. Check the mapped class's namespace and autoloading.
 
 Do not switch to `both` merely to hide a client mismatch. It changes precedence and has signed-URL implications. Fix the client or choose a source deliberately.
 

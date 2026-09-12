@@ -83,19 +83,27 @@ abstract class ActionController
 
         $actionClass = $actions[$resolvedAction];
 
-        if (!class_exists($actionClass)) {
-            throw new NotFoundHttpException('Action not found.');
-        }
-
-        // Use the container so action constructors can receive dependencies too.
-        $action = app()->make($actionClass);
-
-        // A registered class without the contract is a configuration error.
-        if (!$action instanceof ActionInterface) {
+        if (!is_string($actionClass) || $actionClass === '') {
             throw new LogicException(
-                $actionClass . ' must implement ActionInterface.'
+                static::class.' registers action ['.$resolvedAction.'] with an invalid class.'
             );
         }
+
+        if (!class_exists($actionClass)) {
+            throw new LogicException(
+                static::class.' registers action ['.$resolvedAction.'] with missing class '.$actionClass.'.'
+            );
+        }
+
+        if (!is_a($actionClass, ActionInterface::class, true)) {
+            throw new LogicException(
+                static::class.' registers action ['.$resolvedAction.'] with class '
+                .$actionClass.', which must implement '.ActionInterface::class.'.'
+            );
+        }
+
+        // Validate the registry before constructors and container dependencies run.
+        $action = app()->make($actionClass);
 
         // Use validated registry values, not arbitrary client input, as operation labels.
         $request->attributes->set('exert.action', $resolvedAction);
