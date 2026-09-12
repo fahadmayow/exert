@@ -1,0 +1,63 @@
+name: Laravel compatibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      laravel_range:
+        description: Stable Laravel range to test, such as 11.x-13.x
+        required: true
+        default: 11.x-13.x
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - id: versions
+        name: Discover stable Laravel releases
+        env:
+          LARAVEL_RANGE: ${{ inputs.laravel_range || '11.x-13.x' }}
+        run: echo "matrix=$(php scripts/laravel-matrix.php "$LARAVEL_RANGE")" >> "$GITHUB_OUTPUT"
+
+  tests:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    name: Laravel ${{ matrix.laravel }} patches / PHP ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, xml, xmlwriter, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer:v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php-${{ matrix.php }}-laravel-${{ matrix.laravel }}-${{ hashFiles('composer.json') }}
+      - run: composer validate --strict
+      # Historical releases can have known advisories; this isolated job tests compatibility, not deployment safety.
+      - run: composer config audit.block-insecure false
+      - run: composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}"
+      - name: Test every patch in Laravel ${{ matrix.laravel }}
+        run: |
+          for version in ${{ join(matrix.versions, ' ') }}; do
+            echo "Testing Laravel $version"
+            composer require --no-update "laravel/framework:$version"
+            composer update --prefer-dist --no-interaction --no-progress
+            composer test
+          done
