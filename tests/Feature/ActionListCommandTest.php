@@ -37,4 +37,45 @@ class ActionListCommandTest extends TestCase
         $this->assertCount(2, $rows);
         $this->assertSame('cached-list', $rows[0]['route_name']);
     }
+
+    public function test_direct_action_routes_are_listed(): void
+    {
+        ExampleAction::$middleware = ['auth'];
+        Route::exert('/direct-list')->action(ExampleAction::class, 'PATCH');
+
+        Artisan::call('exert:list', ['--json' => true]);
+        $rows = collect(json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR));
+        $row = $rows->first(fn ($row) => $row['uri'] === '/direct-list');
+
+        $this->assertNull($row['controller']);
+        $this->assertNull($row['action']);
+        $this->assertSame(ExampleAction::class, $row['action_id']);
+        $this->assertSame(ExampleAction::class, $row['class']);
+        $this->assertSame(['GET', 'POST'], $row['action_methods']);
+        $this->assertSame([], $row['effective_methods']);
+        $this->assertSame(['auth'], $row['action_middleware']);
+        $this->assertSame(0, ExampleAction::$runs);
+
+        $this->artisan('exert:list')
+            ->expectsOutputToContain('(direct)')
+            ->assertSuccessful();
+    }
+
+    public function test_cached_direct_action_route_is_listed(): void
+    {
+        $routes = new \Illuminate\Routing\RouteCollection;
+        $route = Route::exert('/cached-direct-list')
+            ->action(ExampleAction::class)
+            ->name('cached-direct-list');
+        $route->prepareForSerialization();
+        $routes->add($route);
+        $this->app['router']->setCompiledRoutes($routes->compile());
+
+        Artisan::call('exert:list', ['--json' => true]);
+        $rows = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('cached-direct-list', $rows[0]['route_name']);
+        $this->assertSame(ExampleAction::class, $rows[0]['action_id']);
+    }
 }

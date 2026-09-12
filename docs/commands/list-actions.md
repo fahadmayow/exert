@@ -10,9 +10,9 @@ php artisan exert:list
 php artisan exert:list --json
 ```
 
-The command finds registered Exert resolver routes, including manually registered and cached routes. It shows the domain, URI, action name, class, shared HTTP methods, and declared middleware. No shared methods is shown as `None (route blocked)`.
+The command finds registered Exert controller and direct-action routes, including cached routes. It shows the domain, URI, action name, class, shared HTTP methods, and declared middleware. Direct routes display `(direct)` instead of a selector name. No shared methods is shown as `None (route blocked)`.
 
-JSON also includes route names, controller classes, action IDs, and separate route/action method lists. Custom implementations of `ActionInterface` that do not extend `Action` have unknown action methods and middleware, shown as `null` in JSON.
+JSON also includes route names, controller classes, action IDs, and separate route/action method lists. For a direct route, `controller` and `action` are `null`, while `action_id` is the action class name. Custom implementations of `ActionInterface` that do not extend `Action` have unknown action methods and middleware, shown as `null` in JSON.
 
 The command resolves controllers and actions through the container. It reads their metadata but does not call handlers, `initiate()`, or middleware. Keep constructors and metadata methods safe to call from the console.
 
@@ -30,8 +30,8 @@ An action with `None (route blocked)` has no method in common with its outer rou
 
 | Field group | Fields |
 | --- | --- |
-| Endpoint | `domain`, `uri`, `route_name`, `controller` |
-| Operation | `action`, `action_id`, `class` |
+| Endpoint | `domain`, `uri`, `route_name`, `controller` (`null` for direct routes) |
+| Operation | `action` (`null` for direct routes), `action_id`, `class` |
 | Methods | `route_methods`, `action_methods`, `effective_methods` |
 | Declared middleware | `route_middleware`, `action_middleware` |
 

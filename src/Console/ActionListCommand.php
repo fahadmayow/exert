@@ -11,7 +11,7 @@ use Illuminate\Routing\Router;
 use LogicException;
 
 /**
- * Inspect actions behind registered resolver routes without invoking handlers.
+ * Inspect actions behind registered Exert routes without invoking handlers.
  */
 class ActionListCommand extends Command
 {
@@ -25,6 +25,32 @@ class ActionListCommand extends Command
 
         foreach ($router->getRoutes() as $route) {
             [$controllerClass, $method] = array_pad(explode('@', $route->getActionName(), 2), 2, null);
+
+            if (
+                $method === 'initiate' &&
+                is_string($controllerClass) &&
+                is_a($controllerClass, Action::class, true)
+            ) {
+                $action = $this->laravel->make($controllerClass);
+                $methods = $action->getAllowedMethods();
+
+                $rows[] = [
+                    'domain' => $route->getDomain(),
+                    'uri' => '/'.ltrim($route->uri(), '/'),
+                    'route_name' => $route->getName(),
+                    'controller' => null,
+                    'action' => null,
+                    'action_id' => $controllerClass,
+                    'class' => $controllerClass,
+                    'route_methods' => $route->methods(),
+                    'action_methods' => $methods,
+                    'effective_methods' => array_values(array_intersect($methods, $route->methods())),
+                    'route_middleware' => $this->middlewareLabels($route->gatherMiddleware()),
+                    'action_middleware' => $this->middlewareLabels($action->getActionMiddleware()),
+                ];
+
+                continue;
+            }
 
             if ($method !== 'resolve' || !is_a($controllerClass, ActionController::class, true)) {
                 continue;
@@ -76,7 +102,7 @@ class ActionListCommand extends Command
             array_map(fn (array $row) => [
                 $row['domain'] ?? '*',
                 $row['uri'],
-                $row['action'],
+                $row['action'] ?? '(direct)',
                 $row['effective_methods'] === null ? 'Unknown' : (implode('|', $row['effective_methods']) ?: 'None (route blocked)'),
                 $row['class'],
                 implode(', ', $row['route_middleware']),
