@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  "base": "/exert/",
   "title": "Exert",
   "description": "One operation, one clear home. Learn the opinionated, HTTP-oriented action package for Laravel.",
   "lang": "en-US",
@@ -10,7 +11,7 @@ export default defineConfig({
       {
         "rel": "icon",
         "type": "image/svg+xml",
-        "href": "/favicon.svg"
+        "href": "/exert/favicon.svg"
       }
     ],
     [
