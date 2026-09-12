@@ -8,7 +8,10 @@
   },
   "scripts": {
     "release": "node release.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "repository": {
     "type": "git",
@@ -20,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/fahadmayow/exert/issues"
   },
-  "homepage": "https://github.com/fahadmayow/exert#readme"
+  "homepage": "https://github.com/fahadmayow/exert#readme",
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.20"
+  }
 }
