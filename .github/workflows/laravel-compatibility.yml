@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       laravel_range:
-        description: Stable Laravel range to test, such as 11.x-13.x
+        description: Stable Laravel major or range to test, such as 12.x or 12.x-13.x
         required: true
-        default: 11.x-13.x
+        default: 12.x-13.x
   schedule:
     - cron: '17 3 * * 1'
 
@@ -27,8 +27,10 @@ jobs:
       - id: versions
         name: Discover stable Laravel releases
         env:
-          LARAVEL_RANGE: ${{ inputs.laravel_range || '11.x-13.x' }}
-        run: echo "matrix=$(php scripts/laravel-matrix.php "$LARAVEL_RANGE")" >> "$GITHUB_OUTPUT"
+          LARAVEL_RANGE: ${{ inputs.laravel_range || '12.x-13.x' }}
+        run: |
+          matrix="$(php scripts/laravel-matrix.php "$LARAVEL_RANGE")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   tests:
     needs: discover
@@ -55,9 +57,21 @@ jobs:
       - run: composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}"
       - name: Test every patch in Laravel ${{ matrix.laravel }}
         run: |
+          failed_versions=()
+
           for version in ${{ join(matrix.versions, ' ') }}; do
             echo "Testing Laravel $version"
-            composer require --no-update "laravel/framework:$version"
-            composer update --prefer-dist --no-interaction --no-progress
-            composer test
+
+            if composer require --no-update "laravel/framework:$version" \
+              && composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress \
+              && composer test; then
+              echo "Laravel $version passed"
+            else
+              failed_versions+=("$version")
+            fi
           done
+
+          if (( ${#failed_versions[@]} > 0 )); then
+            echo "Failed Laravel versions: ${failed_versions[*]}" >&2
+            exit 1
+          fi
