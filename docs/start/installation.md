@@ -9,11 +9,11 @@ Install Exert with Composer, then use Laravel package discovery to load its prov
 
 ## Requirements
 
-- Laravel `^13.31`, as declared in `composer.json`.
-- PHP and extensions supported by your installed Laravel version. Laravel 13.31 requires PHP `^8.3`.
+- Laravel 11, 12, or 13, as declared in `composer.json`.
+- PHP 8.2 or newer, within the range supported by your installed Laravel version. Laravel 13 requires PHP 8.3 or newer.
 - Composer.
 
-Earlier Laravel versions are outside the package's current supported range.
+Laravel 10 and earlier are outside the package's supported range.
 
 ## Install with Composer
 

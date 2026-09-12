@@ -2,10 +2,12 @@
 
 namespace Exert\Tests\Feature;
 
+use Closure;
 use Exert\Action;
 use Exert\ActionDispatcher;
 use Exert\Tests\Fixtures\ExampleController;
 use Exert\Tests\TestCase;
+use Illuminate\Container\Container;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -153,7 +155,12 @@ class ActionContextualBindingTest extends TestCase
         $this->app->instance('request', $request);
 
         $action = new ContextualAction();
-        $contextBefore = $this->app->currentlyResolving();
+        $readBuildStack = Closure::bind(
+            static fn (Container $container): array => $container->buildStack,
+            null,
+            Container::class,
+        );
+        $contextBefore = $readBuildStack($this->app);
 
         try {
             $result = ActionDispatcher::dispatch($this->app, $action, $request);
@@ -174,7 +181,7 @@ class ActionContextualBindingTest extends TestCase
         }
 
         $this->assertSame(['contextual'], $resolved);
-        $this->assertSame($contextBefore, $this->app->currentlyResolving());
+        $this->assertSame($contextBefore, $readBuildStack($this->app));
         $this->assertSame($precognitive ? 0 : 1, $action->runs);
     }
 }
