@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.1 — 2026-09-14
+
+- Add the `exert:config` command to create `config/exert.php`, also available through the `exert-config` publish tag.
+- Add the `exert:messages` command to create `config/messages.php`, also available through the `exert-messages` publish tag.
+
 ## v0.1.0 — 2026-09-12
 
 First stable release of Exert for Laravel 12.51 and later, including Laravel 13.

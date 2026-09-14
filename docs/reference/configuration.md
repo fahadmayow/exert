@@ -5,9 +5,10 @@ description: "The three settings, their defaults, and when they are read."
 
 # Configuration reference
 
-Publish the configuration if you need to change the defaults:
+Create or publish the configuration if you need to change the defaults:
 
 ```bash
+php artisan exert:config
 php artisan vendor:publish --tag=exert-config
 ```
 
@@ -44,6 +45,23 @@ Invalid key or source configuration throws a `LogicException` during resolution.
 Use a non-empty relative directory made of valid namespace segments. Each segment must start with an ASCII letter or underscore, followed by ASCII letters, numbers, or underscores. Slash and backslash separators are accepted. Do not include an absolute path or `..` segments. Invalid paths throw an `InvalidArgumentException` when the generator uses them.
 
 The generator respects the application's root namespace. Changing this setting affects future generated files; it does not move existing actions or change controller mappings.
+
+## Status messages
+
+`exert:messages` creates `config/messages.php`, a map of HTTP status text and descriptions for the application to use:
+
+```bash
+php artisan exert:messages
+php artisan exert:messages --force
+```
+
+The same file is available through the `exert-messages` publish tag:
+
+```bash
+php artisan vendor:publish --tag=exert-messages
+```
+
+Exert ships this map as a configuration template but does not read or modify it at runtime. See [exert:messages](/commands/messages) for the file shape and options.
 
 ## Cached configuration
 

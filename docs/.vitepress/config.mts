@@ -203,8 +203,16 @@ export default defineConfig({
             "link": "/commands/make-controller"
           },
           {
+            "text": "exert:config",
+            "link": "/commands/config"
+          },
+          {
             "text": "exert:list",
             "link": "/commands/list-actions"
+          },
+          {
+            "text": "exert:messages",
+            "link": "/commands/messages"
           },
           {
             "text": "Custom templates",
